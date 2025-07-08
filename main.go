@@ -1,8 +1,9 @@
 package main
 
 import (
-	"monkey/repl"
-	"os"
+	"fmt"
+	"monkey/lexer"
+	"monkey/parser"
 )
 
 func main() {
@@ -10,10 +11,22 @@ func main() {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	repl := repl.New(os.Stdin, os.Stdout)
+	// repl := repl.New(os.Stdin, os.Stdout)
 
-	if err := repl.Loop(); err != nil {
-		panic(err)
+	// if err := repl.Loop(); err != nil {
+	// 	panic(err)
+	// }
+	//
+	input := `
+let x = 5;
+let y = 10;
+let foobar = 838383;
+`
+	p := parser.New(lexer.New(input))
+
+	program := p.ParseProgram()
+	for _, stmt := range program.Statements {
+		fmt.Println(stmt.TokenLiteral())
 	}
 
 	// l := lexer.New("!=")
