@@ -18,16 +18,21 @@ func main() {
 	// }
 	//
 	input := `
-let x = 5;
-let y = 10;
-let foobar = 838383;
+let x = 10;
+let t = 13123;
+let ad = 1231;
 `
 	p := parser.New(lexer.New(input))
 
 	program := p.ParseProgram()
+	fmt.Println(program.String())
 	for _, stmt := range program.Statements {
 		fmt.Println(stmt.TokenLiteral())
 	}
+
+	m := map[string]int{}
+
+	fmt.Println(m)
 
 	// l := lexer.New("!=")
 	// next := l.NextToken()

@@ -1,0 +1,15 @@
+package parser
+
+type OperatorPrecedence int
+
+const (
+	_ OperatorPrecedence = iota
+
+	PRECEDENCE_LOWEST
+	PRECEDENCE_EQUALS
+	PRECEDENCE_LESSGREATER
+	PRECEDENCE_SUM
+	PRECEDENCE_PRODUCT
+	PRECEDENCE_PREFIX
+	PRECEDENCE_CALL
+)

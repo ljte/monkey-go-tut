@@ -7,6 +7,11 @@ import (
 	"monkey/token"
 )
 
+type (
+	prefixParser func() ast.Expression
+	infixParser  func(ast.Expression) ast.Expression
+)
+
 type Parser struct {
 	l *lexer.Lexer
 
@@ -14,13 +19,20 @@ type Parser struct {
 	peekToken token.Token
 
 	errors []string
+
+	prefixParsers map[token.TokenType]prefixParser
+	infixParsers  map[token.TokenType]infixParser
 }
 
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{
-		l:      l,
-		errors: []string{},
+		l:             l,
+		errors:        []string{},
+		prefixParsers: map[token.TokenType]prefixParser{},
+		infixParsers:  map[token.TokenType]infixParser{},
 	}
+
+	p.registerPrefixParser(token.IDENTIFIER, p.parseIdentifier)
 
 	p.nextToken()
 	p.nextToken()
@@ -55,8 +67,10 @@ func (p *Parser) parseStmt() ast.Statement {
 	switch p.curToken.Type {
 	case token.LET:
 		return p.parseLetStmt()
+	case token.RETURN:
+		return p.parseReturnStmt()
 	default:
-		return nil
+		return p.parseExpressionStatement()
 	}
 }
 
@@ -101,4 +115,45 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 func (p *Parser) peekError(t token.TokenType) {
 	msg := "expected next token to be %s, got %s instead"
 	p.errors = append(p.errors, fmt.Sprintf(msg, t, p.peekToken.Type))
+}
+
+func (p *Parser) parseReturnStmt() *ast.ReturnStatement {
+	stmt := &ast.ReturnStatement{Token: p.curToken}
+	p.nextToken()
+
+	for !p.curTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return stmt
+}
+
+func (p *Parser) registerPrefixParser(tt token.TokenType, pp prefixParser) {
+	p.prefixParsers[tt] = pp
+}
+
+func (p *Parser) registerInfixParser(tt token.TokenType, ip infixParser) {
+	p.infixParsers[tt] = ip
+}
+
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	stmt := &ast.ExpressionStatement{
+		Token:      p.curToken,
+		Expression: p.parseExpression(PRECEDENCE_LOWEST),
+	}
+
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseExpression(op OperatorPrecedence) ast.Expression {
+	parser, ok := p.prefixParsers[p.curToken.Type]
+	if !ok {
+		return nil
+	}
+
+	return parser()
 }
