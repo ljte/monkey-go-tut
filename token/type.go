@@ -7,8 +7,18 @@ const (
 	IDENTIFIER = "IDENTIFIER"
 	INT        = "INT"
 
-	ASSIGN = "="
-	PLUS   = "+"
+	ASSIGN   = "="
+	PLUS     = "+"
+	MINUS    = "-"
+	ASTERISK = "*"
+	SLASH    = "/"
+
+	BANG = "!"
+
+	LT         = "<"
+	GT         = ">"
+	EQUALS     = "=="
+	NOT_EQUALS = "!="
 
 	COMMA     = ","
 	SEMICOLON = ";"
@@ -20,4 +30,10 @@ const (
 
 	FUNCTION = "FUNCTION"
 	LET      = "LET"
+	IF       = "if"
+	ELSE     = "else"
+	RETURN   = "return"
+
+	TRUE  = "true"
+	FALSE = "false"
 )
