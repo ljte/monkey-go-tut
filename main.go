@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"monkey/ast"
 	"monkey/lexer"
 	"monkey/parser"
 )
@@ -18,21 +19,15 @@ func main() {
 	// }
 	//
 	input := `
-let x = 10;
-let t = 13123;
-let ad = 1231;
+5;
 `
 	p := parser.New(lexer.New(input))
 
 	program := p.ParseProgram()
-	fmt.Println(program.String())
 	for _, stmt := range program.Statements {
-		fmt.Println(stmt.TokenLiteral())
+		integ, _ := stmt.(*ast.ExpressionStatement)
+		fmt.Println(integ.Expression.String())
 	}
-
-	m := map[string]int{}
-
-	fmt.Println(m)
 
 	// l := lexer.New("!=")
 	// next := l.NextToken()

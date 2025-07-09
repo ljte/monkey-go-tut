@@ -33,6 +33,9 @@ func New(l *lexer.Lexer) *Parser {
 	}
 
 	p.registerPrefixParser(token.IDENTIFIER, p.parseIdentifier)
+	p.registerPrefixParser(token.INT, p.parseIntegerLiteral)
+	p.registerPrefixParser(token.BANG, p.parsePrefixExpression)
+	p.registerPrefixParser(token.MINUS, p.parsePrefixExpression)
 
 	p.nextToken()
 	p.nextToken()
@@ -114,7 +117,7 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 
 func (p *Parser) peekError(t token.TokenType) {
 	msg := "expected next token to be %s, got %s instead"
-	p.errors = append(p.errors, fmt.Sprintf(msg, t, p.peekToken.Type))
+	p.addError(fmt.Sprintf(msg, t, p.peekToken.Type))
 }
 
 func (p *Parser) parseReturnStmt() *ast.ReturnStatement {
@@ -152,8 +155,24 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 func (p *Parser) parseExpression(op OperatorPrecedence) ast.Expression {
 	parser, ok := p.prefixParsers[p.curToken.Type]
 	if !ok {
+		p.parserNotFound(p.curToken.Type)
 		return nil
 	}
 
 	return parser()
+}
+
+func (p *Parser) addError(errMsg string) {
+	p.errors = append(p.errors, errMsg)
+}
+
+func (p *Parser) parsePrefixExpression() ast.Expression {
+	exp := &ast.PrefixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+	}
+	p.nextToken()
+
+	exp.Right = p.parseExpression(PRECEDENCE_PREFIX)
+	return exp
 }
