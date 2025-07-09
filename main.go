@@ -19,7 +19,7 @@ func main() {
 	// }
 	//
 	input := `
-5;
+5 + 5 * 10;
 `
 	p := parser.New(lexer.New(input))
 

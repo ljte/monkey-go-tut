@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-func (p *Parser) parserNotFound(t token.TokenType) {
+func (p *Parser) prefixParserNotFound(t token.TokenType) {
 	p.addError(
 		fmt.Sprintf("no prefix parser for %s has been found", t))
 }

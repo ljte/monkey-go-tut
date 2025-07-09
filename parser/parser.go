@@ -37,6 +37,15 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefixParser(token.BANG, p.parsePrefixExpression)
 	p.registerPrefixParser(token.MINUS, p.parsePrefixExpression)
 
+	p.registerInfixParser(token.PLUS, p.parseInfixExpression)
+	p.registerInfixParser(token.MINUS, p.parseInfixExpression)
+	p.registerInfixParser(token.SLASH, p.parseInfixExpression)
+	p.registerInfixParser(token.ASTERISK, p.parseInfixExpression)
+	p.registerInfixParser(token.EQUALS, p.parseInfixExpression)
+	p.registerInfixParser(token.NOT_EQUALS, p.parseInfixExpression)
+	p.registerInfixParser(token.LT, p.parseInfixExpression)
+	p.registerInfixParser(token.GT, p.parseInfixExpression)
+
 	p.nextToken()
 	p.nextToken()
 
@@ -152,14 +161,24 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	return stmt
 }
 
-func (p *Parser) parseExpression(op OperatorPrecedence) ast.Expression {
+func (p *Parser) parseExpression(precedence OperatorPrecedence) ast.Expression {
 	parser, ok := p.prefixParsers[p.curToken.Type]
 	if !ok {
-		p.parserNotFound(p.curToken.Type)
+		p.prefixParserNotFound(p.curToken.Type)
 		return nil
 	}
 
-	return parser()
+	left := parser()
+	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peerPrecedence() {
+		infix := p.infixParsers[p.peekToken.Type]
+		if infix == nil {
+			return left
+		}
+
+		p.nextToken()
+		left = infix(left)
+	}
+	return left
 }
 
 func (p *Parser) addError(errMsg string) {
@@ -174,5 +193,25 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	p.nextToken()
 
 	exp.Right = p.parseExpression(PRECEDENCE_PREFIX)
+	return exp
+}
+
+func (p *Parser) peerPrecedence() OperatorPrecedence {
+	return DerivePrecedence(p.peekToken.Type)
+}
+
+func (p *Parser) curPrecedence() OperatorPrecedence {
+	return DerivePrecedence(p.curToken.Type)
+}
+
+func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
+	exp := &ast.InfixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+		Left:     left,
+	}
+	precedence := p.curPrecedence()
+	p.nextToken()
+	exp.Right = p.parseExpression(precedence)
 	return exp
 }
