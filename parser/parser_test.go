@@ -582,3 +582,75 @@ func TestIfElseExpression(t *testing.T) {
 		return
 	}
 }
+
+func TestFunctionLiteralParsing(t *testing.T) {
+	input := "fn(x, y) { x + y; }"
+	p := New(lexer.New(input))
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("program does not have enough statements, got=%d",
+			len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("expected statement is not an ast.ExpressionStatement, got=%T",
+			program.Statements[0])
+	}
+
+	fn, ok := stmt.Expression.(*ast.FunctionLiteral)
+	if !ok {
+		t.Fatalf("stmt.Expression is not an ast.FunctionLiteral, got=%T",
+			stmt.Expression)
+	}
+
+	if len(fn.Parameters) != 2 {
+		t.Fatalf("Expected function to have 2 parameters, got=%d", len(fn.Parameters))
+	}
+
+	testLiteralExpression(t, fn.Parameters[0], "x")
+	testLiteralExpression(t, fn.Parameters[1], "y")
+
+	if len(fn.Body.Statements) != 1 {
+		t.Fatalf("function body must only have 1 statement, got=%d",
+			len(fn.Body.Statements))
+	}
+
+	body, ok := fn.Body.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("function body is not an expression statement, got=%T",
+			fn.Body.Statements[0])
+	}
+
+	testInfixExpression(t, body.Expression, "x", "+", "y")
+}
+
+func TestFunctionParametersParsing(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected []string
+	}{
+		{"fn() {};", []string{}},
+		{"fn(x) {};", []string{"x"}},
+		{"fn(x, y, z) {};", []string{"x", "y", "z"}},
+	}
+
+	for _, tt := range tests {
+		p := New(lexer.New(tt.input))
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		stmt := program.Statements[0].(*ast.ExpressionStatement)
+		fn := stmt.Expression.(*ast.FunctionLiteral)
+
+		if len(fn.Parameters) != len(tt.expected) {
+			t.Errorf("expected %d params, got=%d", len(tt.expected), len(fn.Parameters))
+		}
+
+		for i, ident := range tt.expected {
+			testLiteralExpression(t, fn.Parameters[i], ident)
+		}
+	}
+}
