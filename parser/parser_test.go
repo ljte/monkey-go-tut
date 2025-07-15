@@ -336,6 +336,26 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 			"3 < 5 == true",
 			"((3 < 5) == true)",
 		},
+		{
+			"1 + (2 + 3) + 4",
+			"((1 + (2 + 3)) + 4)",
+		},
+		{
+			"(5 + 5) * 2",
+			"((5 + 5) * 2)",
+		},
+		{
+			"2 / (5 + 5)",
+			"(2 / (5 + 5))",
+		},
+		{
+			"-(5 + 5)",
+			"(-(5 + 5))",
+		},
+		{
+			"!(true == true)",
+			"(!(true == true))",
+		},
 	}
 
 	for _, tt := range tests {
@@ -455,4 +475,110 @@ func testBoolean(t *testing.T, exp ast.Expression, value bool) bool {
 		return false
 	}
 	return true
+}
+
+func TestIfExpression(t *testing.T) {
+	input := "if (x < y) { x }"
+	p := New(lexer.New(input))
+
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("program does not have enough statements, got=%d",
+			len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+
+	if !ok {
+		t.Fatalf("expected statement is not an ast.ExpressionStatement, got=%T",
+			program.Statements[0])
+	}
+
+	exp, ok := stmt.Expression.(*ast.IfExpression)
+	if !ok {
+		t.Errorf("stmt.Expression is not an ast.IfExpression, got=%T", stmt.Expression)
+	}
+
+	if !testInfixExpression(t, exp.Condition, "x", "<", "y") {
+		return
+	}
+
+	lenStmts := len(exp.Consequence.Statements)
+	if lenStmts != 1 {
+		t.Errorf("consequence should have 1 statements inside, got=%d", lenStmts)
+	}
+
+	consequence, ok := exp.Consequence.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Errorf("consequence's statement is not an ast.ExpressionStatement, got=%T",
+			exp.Consequence.Statements[0])
+	}
+
+	if !testIdentifier(t, consequence.Expression, "x") {
+		return
+	}
+
+	if exp.Alternative != nil {
+		t.Errorf("exp.Alternative should be nil, got=%+v", exp.Alternative)
+	}
+}
+
+func TestIfElseExpression(t *testing.T) {
+	input := "if (x < y) { x } else { y }"
+	p := New(lexer.New(input))
+
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("program does not have enough statements, got=%d",
+			len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+
+	if !ok {
+		t.Fatalf("expected statement is not an ast.ExpressionStatement, got=%T",
+			program.Statements[0])
+	}
+
+	exp, ok := stmt.Expression.(*ast.IfExpression)
+	if !ok {
+		t.Errorf("stmt.Expression is not an ast.IfExpression, got=%T", stmt.Expression)
+	}
+
+	if !testInfixExpression(t, exp.Condition, "x", "<", "y") {
+		return
+	}
+
+	lenStmts := len(exp.Consequence.Statements)
+	if lenStmts != 1 {
+		t.Errorf("consequence should have 1 statements inside, got=%d", lenStmts)
+	}
+
+	consequence, ok := exp.Consequence.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Errorf("consequence's statement is not an ast.ExpressionStatement, got=%T",
+			exp.Consequence.Statements[0])
+	}
+
+	if !testIdentifier(t, consequence.Expression, "x") {
+		return
+	}
+
+	if exp.Alternative == nil {
+		t.Error("exp.Alternative is nil")
+	}
+
+	alternative, ok := exp.Alternative.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Errorf("alternative's statement is not an ast.ExpressionStatement, got=%T",
+			exp.Alternative.Statements[0])
+	}
+
+	if !testIdentifier(t, alternative.Expression, "y") {
+		return
+	}
 }
