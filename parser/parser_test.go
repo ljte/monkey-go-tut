@@ -8,34 +8,32 @@ import (
 )
 
 func TestLetStatements(t *testing.T) {
-	input := `
-let x = 5;
-let y = 10;
-let foobar = 838383;
-`
-	p := New(lexer.New(input))
-
-	program := p.ParseProgram()
-	checkParserErrors(t, p)
-	if program == nil {
-		t.Fatalf("ParserProgram() returned nil")
-	}
-
-	if len(program.Statements) != 3 {
-		t.Fatalf("program.Statements does not contain 3 statements, got=%d",
-			len(program.Statements))
-	}
-
 	tests := []struct {
-		expectedIdentifier string
+		input         string
+		expectedIdent string
+		expectedVal   any
 	}{
-		{"x"},
-		{"y"},
-		{"foobar"},
+		{"let x = 5", "x", 5},
+		{"let y = 10", "y", 10},
+		{"let foobar = 838383", "foobar", 838383},
 	}
+	for _, tt := range tests {
+		p := New(lexer.New(tt.input))
 
-	for i, tt := range tests {
-		if !testLetStatement(t, program.Statements[i], tt.expectedIdentifier) {
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements does not contain 3 statements, got=%d",
+				len(program.Statements))
+		}
+
+		stmt := program.Statements[0]
+		if !testLetStatement(t, stmt, tt.expectedIdent) {
+			return
+		}
+
+		if !testLiteralExpression(t, stmt.(*ast.LetStatement).Value, tt.expectedVal) {
 			return
 		}
 	}
@@ -67,36 +65,39 @@ func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 }
 
 func TestReturnStatements(t *testing.T) {
-	input := `
-return 5;
-return 10;
-return 993322;
-`
-
-	p := New(lexer.New(input))
-
-	program := p.ParseProgram()
-	checkParserErrors(t, p)
-	if program == nil {
-		t.Fatalf("ParserProgram() returned nil")
+	tests := []struct {
+		input         string
+		expectedValue any
+	}{
+		{"return 5", 5},
+		{"return 10", 10},
+		{"return 993322", 993322},
 	}
 
-	if len(program.Statements) != 3 {
-		t.Fatalf("program.Statements does not contain 3 statements, got=%d",
-			len(program.Statements))
-	}
+	for _, tt := range tests {
+		p := New(lexer.New(tt.input))
 
-	for _, stmt := range program.Statements {
-		returnStmt, ok := stmt.(*ast.ReturnStatement)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
 
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements does not contain 1 statements, got=%d",
+				len(program.Statements))
+		}
+
+		returnStmt, ok := program.Statements[0].(*ast.ReturnStatement)
 		if !ok {
-			t.Errorf("stmt not * ast.ReturnStatement. got=%T", stmt)
+			t.Errorf("stmt not * ast.ReturnStatement. got=%T", program.Statements[0])
 			continue
 		}
 
 		if returnStmt.TokenLiteral() != "return" {
 			t.Errorf("expected return literal, got %q",
 				returnStmt.TokenLiteral())
+		}
+
+		if !testLiteralExpression(t, returnStmt.ReturnValue, tt.expectedValue) {
+			return
 		}
 	}
 }
@@ -355,6 +356,18 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		{
 			"!(true == true)",
 			"(!(true == true))",
+		},
+		{
+			"a + add(b * c) + d",
+			"((a + add((b * c))) + d)",
+		},
+		{
+			"add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
+			"add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))",
+		},
+		{
+			"add(a + b + c * d / f + g)",
+			"add((((a + b) + ((c * d) / f)) + g))",
 		},
 	}
 
@@ -653,4 +666,40 @@ func TestFunctionParametersParsing(t *testing.T) {
 			testLiteralExpression(t, fn.Parameters[i], ident)
 		}
 	}
+}
+
+func TestCallExpressionParsing(t *testing.T) {
+	input := "add(1, 2 * 3, 4 + 5)"
+
+	p := New(lexer.New(input))
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("program does not have enough statements, got=%d",
+			len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("expected statement is not an ast.ExpressionStatement, got=%T",
+			program.Statements[0])
+	}
+
+	exp, ok := stmt.Expression.(*ast.CallExpression)
+	if !ok {
+		t.Fatalf("stmt.Expression is an ast.CallExpression, got=%T", exp)
+	}
+
+	if !testIdentifier(t, exp.Func, "add") {
+		return
+	}
+
+	if len(exp.Args) != 3 {
+		t.Fatalf("there are 3 arguments expected, got=%d", len(exp.Args))
+	}
+
+	testLiteralExpression(t, exp.Args[0], 1)
+	testInfixExpression(t, exp.Args[1], 2, "*", 3)
+	testInfixExpression(t, exp.Args[2], 4, "+", 5)
 }

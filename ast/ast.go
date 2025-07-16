@@ -257,8 +257,8 @@ func (fl *FunctionLiteral) String() string {
 	var out bytes.Buffer
 
 	params := make([]string, len(fl.Parameters))
-	for _, p := range fl.Parameters {
-		params = append(params, p.String())
+	for i, p := range fl.Parameters {
+		params[i] = p.String()
 	}
 
 	out.WriteString(fl.TokenLiteral())
@@ -267,5 +267,30 @@ func (fl *FunctionLiteral) String() string {
 	out.WriteRune(')')
 	out.WriteString(fl.Body.String())
 
+	return out.String()
+}
+
+type CallExpression struct {
+	Token token.Token
+	Func  Expression
+	Args  []Expression
+}
+
+func (ce *CallExpression) expressionNode() {}
+func (ce *CallExpression) TokenLiteral() string {
+	return ce.Token.Literal
+}
+func (ce *CallExpression) String() string {
+	var out bytes.Buffer
+
+	args := make([]string, len(ce.Args))
+	for i, arg := range ce.Args {
+		args[i] = arg.String()
+	}
+
+	out.WriteString(ce.Func.String())
+	out.WriteRune('(')
+	out.WriteString(strings.Join(args, ", "))
+	out.WriteRune(')')
 	return out.String()
 }

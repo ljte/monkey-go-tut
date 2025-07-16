@@ -25,6 +25,7 @@ var Precedences = map[token.TokenType]OperatorPrecedence{
 	token.MINUS:      PRECEDENCE_SUM,
 	token.SLASH:      PRECEDENCE_PRODUCT,
 	token.ASTERISK:   PRECEDENCE_PRODUCT,
+	token.LPAREN:     PRECEDENCE_CALL,
 }
 
 func DerivePrecedence(tt token.TokenType) OperatorPrecedence {

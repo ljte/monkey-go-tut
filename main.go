@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"monkey/ast"
 	"monkey/lexer"
 	"monkey/parser"
 )
@@ -19,15 +18,16 @@ func main() {
 	// }
 	//
 	input := `
-5 + 5 * 10;
+add(5, 6, 7)
 `
 	p := parser.New(lexer.New(input))
 
 	program := p.ParseProgram()
-	for _, stmt := range program.Statements {
-		integ, _ := stmt.(*ast.ExpressionStatement)
-		fmt.Println(integ.Expression.String())
-	}
+	// for _, stmt := range program.Statements {
+	// 	integ, _ := stmt.(*ast.ExpressionStatement)
+	// 	fmt.Println(integ.Expression.String())
+	// }
+	fmt.Println(program.String())
 
 	// l := lexer.New("!=")
 	// next := l.NextToken()
