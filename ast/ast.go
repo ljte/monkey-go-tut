@@ -2,13 +2,14 @@ package ast
 
 import (
 	"bytes"
+	"fmt"
 	"monkey/token"
 	"strings"
 )
 
 type Node interface {
+	fmt.Stringer
 	TokenLiteral() string
-	String() string
 }
 
 type Statement interface {
