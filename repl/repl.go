@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"monkey/lexer"
-	"monkey/token"
+	"monkey/parser"
 )
 
 type Repl struct {
@@ -26,11 +26,19 @@ func (r *Repl) Loop() error {
 		if !scanner.Scan() {
 			return nil
 		}
-		l := lexer.New(scanner.Text())
-
-		for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
-			fmt.Fprintf(r.out, "%+v\n", tok)
+		p := parser.New(lexer.New(scanner.Text()))
+		program := p.ParseProgram()
+		if errors := p.Errors(); len(p.Errors()) != 0 {
+			r.printErrors(errors)
+			continue
 		}
-	}
 
+		fmt.Fprintln(r.out, program.String())
+	}
+}
+
+func (r *Repl) printErrors(errors []string) {
+	for _, err := range errors {
+		fmt.Fprintf(r.out, "\t%s\n", err)
+	}
 }

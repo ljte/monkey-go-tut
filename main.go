@@ -1,9 +1,8 @@
 package main
 
 import (
-	"fmt"
-	"monkey/lexer"
-	"monkey/parser"
+	"monkey/repl"
+	"os"
 )
 
 func main() {
@@ -11,27 +10,27 @@ func main() {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	// repl := repl.New(os.Stdin, os.Stdout)
+	repl := repl.New(os.Stdin, os.Stdout)
 
-	// if err := repl.Loop(); err != nil {
-	// 	panic(err)
-	// }
-	//
-	input := `
-add(5, 6, 7)
-`
-	p := parser.New(lexer.New(input))
+	if err := repl.Loop(); err != nil {
+		panic(err)
+	}
 
-	program := p.ParseProgram()
-	// for _, stmt := range program.Statements {
-	// 	integ, _ := stmt.(*ast.ExpressionStatement)
-	// 	fmt.Println(integ.Expression.String())
-	// }
-	fmt.Println(program.String())
+	// 	input := `
+	// add(5, 6, 7)
+	// `
+	// 	p := parser.New(lexer.New(input))
 
-	// l := lexer.New("!=")
-	// next := l.NextToken()
-	// fmt.Printf("%v %q\n", next.Type, next.Literal)
-	// fmt.Println(l.Next
-	// fmt.Println(l.NextToken())
+	// 	program := p.ParseProgram()
+	// 	// for _, stmt := range program.Statements {
+	// 	// 	integ, _ := stmt.(*ast.ExpressionStatement)
+	// 	// 	fmt.Println(integ.Expression.String())
+	// 	// }
+	// 	fmt.Println(program.String())
+
+	// // l := lexer.New("!=")
+	// // next := l.NextToken()
+	// // fmt.Printf("%v %q\n", next.Type, next.Literal)
+	// // fmt.Println(l.Next
+	// // fmt.Println(l.NextToken())
 }
