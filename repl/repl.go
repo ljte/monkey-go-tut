@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"monkey/eval"
 	"monkey/lexer"
 	"monkey/parser"
 )
@@ -32,8 +33,10 @@ func (r *Repl) Loop() error {
 			r.printErrors(errors)
 			continue
 		}
-
-		fmt.Fprintln(r.out, program.String())
+		res := eval.Eval(program)
+		if res != nil {
+			fmt.Fprintln(r.out, res.Inspect())
+		}
 	}
 }
 
