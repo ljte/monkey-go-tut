@@ -2,6 +2,12 @@ package object
 
 import "fmt"
 
+var (
+	NULL  = &Null{}
+	TRUE  = &Boolean{Value: true}
+	FALSE = &Boolean{Value: false}
+)
+
 type Object interface {
 	Type() ObjectType
 	Inspect() string
@@ -39,4 +45,15 @@ func (_ *Null) Inspect() string {
 
 func (_ *Null) Type() ObjectType {
 	return OBJ_NULL
+}
+
+func AsInt(val int64) *Integer {
+	return &Integer{Value: val}
+}
+
+func AsBool(val bool) *Boolean {
+	if val {
+		return TRUE
+	}
+	return FALSE
 }
