@@ -57,3 +57,26 @@ func AsBool(val bool) *Boolean {
 	}
 	return FALSE
 }
+
+func IsTruthy(obj Object) bool {
+	switch obj {
+	case FALSE:
+		fallthrough
+	case NULL:
+		return false
+	default:
+		return true
+	}
+}
+
+type ReturnValue struct {
+	Value Object
+}
+
+func (rv *ReturnValue) Type() ObjectType {
+	return OBJ_RETURN_VALUE
+}
+
+func (rv *ReturnValue) Inspect() string {
+	return rv.Value.Inspect()
+}

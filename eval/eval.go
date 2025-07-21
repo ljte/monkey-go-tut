@@ -8,13 +8,19 @@ import (
 func Eval(node ast.Node) object.Object {
 	switch node := node.(type) {
 	case *ast.Program:
-		return evalStatements(node.Statements)
+		return evalProgram(node)
 	case *ast.ExpressionStatement:
 		return Eval(node.Expression)
 	case *ast.PrefixExpression:
 		return evalPrefixExp(node)
 	case *ast.InfixExpression:
 		return evalInfixExp(node)
+	case *ast.IfExpression:
+		return evalIfExpression(node)
+	case *ast.BlockStatement:
+		return evalBlockStmt(node)
+	case *ast.ReturnStatement:
+		return &object.ReturnValue{Value: Eval(node.ReturnValue)}
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 	case *ast.Boolean:
@@ -24,10 +30,15 @@ func Eval(node ast.Node) object.Object {
 	}
 }
 
-func evalStatements(stmts []ast.Statement) object.Object {
+func evalProgram(p *ast.Program) object.Object {
 	var result object.Object
-	for _, stmt := range stmts {
+
+	for _, stmt := range p.Statements {
 		result = Eval(stmt)
+
+		if rv, ok := result.(*object.ReturnValue); ok {
+			return rv.Value
+		}
 	}
 	return result
 }
@@ -107,4 +118,30 @@ func evalIntegerInfixExp(left, right object.Object, operator string) object.Obje
 	default:
 		return object.NULL
 	}
+}
+
+func evalIfExpression(ifExp *ast.IfExpression) object.Object {
+	cond := Eval(ifExp.Condition)
+
+	if object.IsTruthy(cond) {
+		return Eval(ifExp.Consequence)
+	}
+	if ifExp.Alternative != nil {
+		return Eval(ifExp.Alternative)
+	}
+	return object.NULL
+}
+
+func evalBlockStmt(block *ast.BlockStatement) object.Object {
+	var result object.Object
+
+	for _, stmt := range block.Statements {
+		result = Eval(stmt)
+
+		if result != nil && result.Type() == object.OBJ_RETURN_VALUE {
+			return result
+		}
+	}
+
+	return result
 }
