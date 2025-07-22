@@ -73,10 +73,32 @@ type ReturnValue struct {
 	Value Object
 }
 
-func (rv *ReturnValue) Type() ObjectType {
+func (_ *ReturnValue) Type() ObjectType {
 	return OBJ_RETURN_VALUE
 }
 
 func (rv *ReturnValue) Inspect() string {
 	return rv.Value.Inspect()
+}
+
+type Error struct {
+	Msg string
+}
+
+func (_ *Error) Type() ObjectType {
+	return OBJ_ERROR
+}
+
+func (e *Error) Inspect() string {
+	return "ERROR: " + e.Msg
+}
+
+func FormatError(format string, args ...any) *Error {
+	return &Error{
+		Msg: fmt.Sprintf(format, args...),
+	}
+}
+
+func IsError(obj Object) bool {
+	return obj != nil && obj.Type() == OBJ_ERROR
 }

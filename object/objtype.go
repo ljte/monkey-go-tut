@@ -7,4 +7,5 @@ const (
 	OBJ_BOOLEAN                 = "BOOLEAN"
 	OBJ_NULL                    = "NULL"
 	OBJ_RETURN_VALUE            = "RETURN_VALUE"
+	OBJ_ERROR                   = "ERROR"
 )

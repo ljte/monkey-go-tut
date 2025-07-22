@@ -20,7 +20,7 @@ func Eval(node ast.Node) object.Object {
 	case *ast.BlockStatement:
 		return evalBlockStmt(node)
 	case *ast.ReturnStatement:
-		return &object.ReturnValue{Value: Eval(node.ReturnValue)}
+		return evalReturn(node)
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 	case *ast.Boolean:
@@ -30,14 +30,25 @@ func Eval(node ast.Node) object.Object {
 	}
 }
 
+func evalReturn(rv *ast.ReturnStatement) object.Object {
+	val := Eval(rv.ReturnValue)
+	if object.IsError(val) {
+		return val
+	}
+	return &object.ReturnValue{Value: val}
+}
+
 func evalProgram(p *ast.Program) object.Object {
 	var result object.Object
 
 	for _, stmt := range p.Statements {
 		result = Eval(stmt)
 
-		if rv, ok := result.(*object.ReturnValue); ok {
-			return rv.Value
+		switch result := result.(type) {
+		case *object.ReturnValue:
+			return result.Value
+		case *object.Error:
+			return result
 		}
 	}
 	return result
@@ -45,6 +56,9 @@ func evalProgram(p *ast.Program) object.Object {
 
 func evalPrefixExp(node *ast.PrefixExpression) object.Object {
 	val := Eval(node.Right)
+	if object.IsError(val) {
+		return val
+	}
 
 	switch node.Operator {
 	case "!":
@@ -52,7 +66,8 @@ func evalPrefixExp(node *ast.PrefixExpression) object.Object {
 	case "-":
 		return evalMinus(val)
 	default:
-		return object.NULL
+		return object.FormatError(
+			"unknown operator: %s%s", node.Operator, val.Type())
 	}
 }
 
@@ -71,7 +86,8 @@ func evalBang(right object.Object) object.Object {
 
 func evalMinus(right object.Object) object.Object {
 	if right.Type() != object.OBJ_INTEGER {
-		return object.NULL
+		return object.FormatError("unknown operator: -%s",
+			right.Type())
 	}
 	integer := right.(*object.Integer)
 	return object.AsInt(-integer.Value)
@@ -81,16 +97,27 @@ func evalInfixExp(node *ast.InfixExpression) object.Object {
 	left := Eval(node.Left)
 	right := Eval(node.Right)
 
+	if object.IsError(left) {
+		return left
+	}
+
+	if object.IsError(right) {
+		return right
+	}
+
 	switch {
 	case left.Type() == object.OBJ_INTEGER && right.Type() == object.OBJ_INTEGER:
 		return evalIntegerInfixExp(left, right, node.Operator)
+	case left.Type() != right.Type():
+		return object.FormatError("type mismatch: %s %s %s",
+			left.Type(), node.Operator, right.Type())
 	case node.Operator == "==":
 		return object.AsBool(left == right)
 	case node.Operator == "!=":
 		return object.AsBool(left != right)
 	default:
-		return object.NULL
-
+		return object.FormatError("unknown operator: %s %s %s",
+			left.Type(), node.Operator, right.Type())
 	}
 }
 
@@ -116,7 +143,8 @@ func evalIntegerInfixExp(left, right object.Object, operator string) object.Obje
 	case "!=":
 		return object.AsBool(leftInt != rightInt)
 	default:
-		return object.NULL
+		return object.FormatError("unknown operator: %s %s %s",
+			left.Type(), operator, right.Type())
 	}
 }
 
@@ -138,7 +166,14 @@ func evalBlockStmt(block *ast.BlockStatement) object.Object {
 	for _, stmt := range block.Statements {
 		result = Eval(stmt)
 
-		if result != nil && result.Type() == object.OBJ_RETURN_VALUE {
+		if result == nil {
+			continue
+		}
+
+		switch result.Type() {
+		case object.OBJ_RETURN_VALUE:
+			fallthrough
+		case object.OBJ_ERROR:
 			return result
 		}
 	}
