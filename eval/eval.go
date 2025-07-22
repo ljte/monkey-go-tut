@@ -5,44 +5,65 @@ import (
 	"monkey/object"
 )
 
-func Eval(node ast.Node) object.Object {
+func Eval(node ast.Node, env *object.Environment) object.Object {
 	switch node := node.(type) {
 	case *ast.Program:
-		return evalProgram(node)
+		return evalProgram(node, env)
 	case *ast.ExpressionStatement:
-		return Eval(node.Expression)
+		return Eval(node.Expression, env)
 	case *ast.PrefixExpression:
-		return evalPrefixExp(node)
+		return evalPrefixExp(node, env)
 	case *ast.InfixExpression:
-		return evalInfixExp(node)
+		return evalInfixExp(node, env)
 	case *ast.IfExpression:
-		return evalIfExpression(node)
+		return evalIfExpression(node, env)
 	case *ast.BlockStatement:
-		return evalBlockStmt(node)
+		return evalBlockStmt(node, env)
 	case *ast.ReturnStatement:
-		return evalReturn(node)
+		return evalReturn(node, env)
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 	case *ast.Boolean:
 		return object.AsBool(node.Value)
+	case *ast.LetStatement:
+		return evalLetStmt(node, env)
+	case *ast.Identifier:
+		return evalIdentifier(node, env)
 	default:
 		return nil
 	}
 }
 
-func evalReturn(rv *ast.ReturnStatement) object.Object {
-	val := Eval(rv.ReturnValue)
+func evalIdentifier(ident *ast.Identifier, env *object.Environment) object.Object {
+	obj, ok := env.Get(ident.Value)
+
+	if !ok {
+		return object.FormatError("identifier not found: %s", ident.Value)
+	}
+
+	return obj
+}
+func evalLetStmt(ls *ast.LetStatement, env *object.Environment) object.Object {
+	val := Eval(ls.Value, env)
+	if object.IsError(val) {
+		return val
+	}
+	return env.Set(ls.Name.Value, val)
+}
+
+func evalReturn(rv *ast.ReturnStatement, env *object.Environment) object.Object {
+	val := Eval(rv.ReturnValue, env)
 	if object.IsError(val) {
 		return val
 	}
 	return &object.ReturnValue{Value: val}
 }
 
-func evalProgram(p *ast.Program) object.Object {
+func evalProgram(p *ast.Program, env *object.Environment) object.Object {
 	var result object.Object
 
 	for _, stmt := range p.Statements {
-		result = Eval(stmt)
+		result = Eval(stmt, env)
 
 		switch result := result.(type) {
 		case *object.ReturnValue:
@@ -54,8 +75,8 @@ func evalProgram(p *ast.Program) object.Object {
 	return result
 }
 
-func evalPrefixExp(node *ast.PrefixExpression) object.Object {
-	val := Eval(node.Right)
+func evalPrefixExp(node *ast.PrefixExpression, env *object.Environment) object.Object {
+	val := Eval(node.Right, env)
 	if object.IsError(val) {
 		return val
 	}
@@ -93,9 +114,9 @@ func evalMinus(right object.Object) object.Object {
 	return object.AsInt(-integer.Value)
 }
 
-func evalInfixExp(node *ast.InfixExpression) object.Object {
-	left := Eval(node.Left)
-	right := Eval(node.Right)
+func evalInfixExp(node *ast.InfixExpression, env *object.Environment) object.Object {
+	left := Eval(node.Left, env)
+	right := Eval(node.Right, env)
 
 	if object.IsError(left) {
 		return left
@@ -148,23 +169,23 @@ func evalIntegerInfixExp(left, right object.Object, operator string) object.Obje
 	}
 }
 
-func evalIfExpression(ifExp *ast.IfExpression) object.Object {
-	cond := Eval(ifExp.Condition)
+func evalIfExpression(ifExp *ast.IfExpression, env *object.Environment) object.Object {
+	cond := Eval(ifExp.Condition, env)
 
 	if object.IsTruthy(cond) {
-		return Eval(ifExp.Consequence)
+		return Eval(ifExp.Consequence, env)
 	}
 	if ifExp.Alternative != nil {
-		return Eval(ifExp.Alternative)
+		return Eval(ifExp.Alternative, env)
 	}
 	return object.NULL
 }
 
-func evalBlockStmt(block *ast.BlockStatement) object.Object {
+func evalBlockStmt(block *ast.BlockStatement, env *object.Environment) object.Object {
 	var result object.Object
 
 	for _, stmt := range block.Statements {
-		result = Eval(stmt)
+		result = Eval(stmt, env)
 
 		if result == nil {
 			continue

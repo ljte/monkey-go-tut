@@ -6,6 +6,7 @@ import (
 	"io"
 	"monkey/eval"
 	"monkey/lexer"
+	"monkey/object"
 	"monkey/parser"
 )
 
@@ -21,6 +22,7 @@ func New(in io.Reader, out io.Writer) *Repl {
 
 func (r *Repl) Loop() error {
 	scanner := bufio.NewScanner(r.in)
+	env := object.NewEnvironment()
 
 	for {
 		fmt.Fprint(r.out, r.prompt)
@@ -29,11 +31,11 @@ func (r *Repl) Loop() error {
 		}
 		p := parser.New(lexer.New(scanner.Text()))
 		program := p.ParseProgram()
-		if errors := p.Errors(); len(p.Errors()) != 0 {
+		if errors := p.Errors(); len(errors) != 0 {
 			r.printErrors(errors)
 			continue
 		}
-		res := eval.Eval(program)
+		res := eval.Eval(program, env)
 		if res != nil {
 			fmt.Fprintln(r.out, res.Inspect())
 		}
